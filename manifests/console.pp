@@ -31,29 +31,33 @@
 #
 class openshift_origin::console {
   ensure_resource('package', 'rubygem-openshift-origin-console', {
-      ensure  => present,
+      ensure  => latest,
       require => Yumrepo[openshift-origin],
     }
   )
 
   ensure_resource('package', 'gcc', {
-      ensure  => present,
-    }
-  )
-
-  ensure_resource('package', 'make', {
-      ensure  => present,
+      ensure  => latest,
     }
   )
 
   ensure_resource('package', 'openshift-origin-console', {
-      ensure  => present,
+      ensure  => latest,
       require => Yumrepo[openshift-origin],
     }
   )
 
   file { 'openshift console.conf':
     path    => '/etc/openshift/console.conf',
+    content => template('openshift_origin/console/console.conf.erb'),
+    owner   => 'apache',
+    group   => 'apache',
+    mode    => '0644',
+    require => Package['openshift-origin-console'],
+  }
+
+  file { 'openshift console-dev.conf':
+    path    => '/etc/openshift/console-dev.conf',
     content => template('openshift_origin/console/console.conf.erb'),
     owner   => 'apache',
     group   => 'apache',
@@ -72,136 +76,249 @@ class openshift_origin::console {
   }
 
   if $::operatingsystem == 'Fedora' {
+
+    ensure_resource('package', 'rubygem-capybara', {
+        ensure   => 'latest',
+        alias    => 'capybara',
+      }
+    )
+
+    ensure_resource('package', 'rubygem-poltergeist', {
+        ensure   => 'latest',
+        alias    => 'poltergeist',
+        require  => [Yumrepo['openshift-origin-deps']],
+      }
+    )
+
+    ensure_resource('package', 'rubygem-webmock', {
+        ensure   => 'latest',
+        alias    => 'webmock',
+      }
+    )
+
+    ensure_resource('package', 'rubygem-simplecov', {
+        ensure   => 'latest',
+        alias    => 'simplecov',
+      }
+    )
+
+    ensure_resource('package', 'rubygem-mocha', {
+        ensure   => 'latest',
+        alias    => 'mocha',
+      }
+    )
+
+    ensure_resource('package', 'rubygem-minitest', {
+        ensure   => 'latest',
+        alias    => 'minitest',
+      }
+    )
+
+    ensure_resource('package', 'rubygem-ci_reporter', {
+        ensure   => 'latest',
+        alias    => 'ci_reporter',
+      }
+    )
+
     ensure_resource('package', 'rubygem-sass-rails', {
         ensure   => 'latest',
-        alias    => 'rubygem-sass-rails',
+        alias    => 'sass-rails',
+        require => Yumrepo[openshift-origin-deps],
+      }
+    )
+
+    ensure_resource('package', 'rubygem-sass-twitter-bootstrap', {
+        ensure   => 'latest',
+        alias    => 'sass-twitter-bootstrap',
+        require => Yumrepo[openshift-origin-deps],
       }
     )
 
     ensure_resource('package', 'rubygem-jquery-rails', {
         ensure   => 'latest',
-        alias    => 'rubygem-jquery-rails',
+        alias    => 'jquery-rails',
+        require => Yumrepo[openshift-origin-deps],
       }
     )
 
     ensure_resource('package', 'rubygem-coffee-rails', {
         ensure   => 'latest',
-        alias    => 'rubygem-coffee-rails',
+        alias    => 'coffee-rails',
+        require => Yumrepo[openshift-origin-deps],
       }
     )
 
     ensure_resource('package', 'rubygem-compass-rails', {
         ensure   => 'latest',
-        alias    => 'rubygem-compass-rails',
+        alias    => 'compass-rails',
+        require => Yumrepo[openshift-origin-deps],
       }
     )
 
     ensure_resource('package', 'rubygem-uglifier', {
         ensure   => 'latest',
-        alias    => 'rubygem-uglifier',
+        alias    => 'uglifier',
+        require => Yumrepo[openshift-origin-deps],
       }
     )
 
     ensure_resource('package', 'rubygem-therubyracer', {
         ensure   => 'latest',
-        alias    => 'rubygem-therubyracer',
+        alias    => 'therubyracer',
+        require => Yumrepo[openshift-origin-deps],
       }
     )
 
-    ensure_resource('package', 'rdiscount', {
-        ensure   => '1.6.8',
-        provider => 'gem',
-        alias    => 'rubygem-rdiscount',
-        require  => [
-            Package['ruby-devel'],
-            Package['gcc'],
-            Package['make']
-          ]
+    ensure_resource('package', 'rubygem-rdiscount', {
+        ensure   => 'latest',
+        alias    => 'rdiscount',
       }
     )
 
-    ensure_resource('package', 'formtastic', {
-        ensure   => '1.2.4',
-        provider => 'gem',
-        alias    => 'rubygem-formtastic'
+    ensure_resource('package', 'rubygem-formtastic', {
+        ensure   => 'latest',
+        alias    => 'formtastic',
+        require => Yumrepo[openshift-origin-deps],
       }
     )
 
-    ensure_resource('package', 'net-http-persistent', {
-        ensure   => '2.7',
-        provider => 'gem',
-        alias    => 'rubygem-net-http-persistent'
+    ensure_resource('package', 'rubygem-net-http-persistent', {
+        ensure   => 'latest',
+        alias    => 'net-http-persistent',
       }
     )
 
-    ensure_resource('package', 'haml', {
-        ensure   => '3.1.7',
-        provider => 'gem',
-        alias    => 'rubygem-haml'
+    ensure_resource('package', 'rubygem-haml', {
+        ensure   => 'latest',
+        alias    => 'haml',
       }
     )
   }
 
   if ($::operatingsystem == "RedHat" or $::operatingsystem == "CentOS") {
+    ensure_resource('package', 'ruby193-rubygem-ci_reporter', {
+        ensure   => 'latest',
+        alias    => 'ci_reporter',
+        require => Yumrepo[openshift-origin-deps],
+      }
+    )
+
     ensure_resource('package', 'ruby193-rubygem-sass-rails', {
         ensure   => 'latest',
-        alias    => 'rubygem-sass-rails',
+        alias    => 'sass-rails',
+        require => Yumrepo[openshift-origin-deps],
+      }
+    )
+
+    ensure_resource('package', 'ruby193-rubygem-sass-twitter-bootstrap', {
+        ensure   => 'latest',
+        alias    => 'sass-twitter-bootstrap',
+        require => Yumrepo[openshift-origin-deps],
       }
     )
 
     ensure_resource('package', 'ruby193-rubygem-jquery-rails', {
         ensure   => 'latest',
-        alias    => 'rubygem-jquery-rails',
+        alias    => 'jquery-rails',
+        require => Yumrepo[openshift-origin-deps],
       }
     )
 
     ensure_resource('package', 'ruby193-rubygem-coffee-rails', {
         ensure   => 'latest',
-        alias    => 'rubygem-coffee-rails',
+        alias    => 'coffee-rails',
+        require => Yumrepo[openshift-origin-deps],
       }
     )
 
     ensure_resource('package', 'ruby193-rubygem-compass-rails', {
         ensure   => 'latest',
-        alias    => 'rubygem-compass-rails',
+        alias    => 'compass-rails',
+        require => Yumrepo[openshift-origin-deps],
       }
     )
 
     ensure_resource('package', 'ruby193-rubygem-uglifier', {
         ensure   => 'latest',
-        alias    => 'rubygem-uglifier',
+        alias    => 'uglifier',
+        require => Yumrepo[openshift-origin-deps],
       }
     )
 
     ensure_resource('package', 'ruby193-rubygem-therubyracer', {
         ensure   => 'latest',
-        alias    => 'rubygem-therubyracer',
+        alias    => 'therubyracer',
+        require => Yumrepo[openshift-origin-deps],
       }
     )
 
     ensure_resource('package', 'ruby193-rubygem-rdiscount', {
         ensure   => 'latest',
-        alias    => 'rubygem-rdiscount',
+        alias    => 'rdiscount',
+        require => Yumrepo[openshift-origin-deps],
       }
     )
 
     ensure_resource('package', 'ruby193-rubygem-net-http-persistent', {
         ensure   => 'latest',
-        alias    => 'rubygem-net-http-persistent',
+        alias    => 'net-http-persistent',
+        require => Yumrepo[openshift-origin-deps],
       }
     )
 
     ensure_resource('package', 'ruby193-rubygem-haml', {
         ensure   => 'latest',
-        alias    => 'rubygem-haml',
+        alias    => 'haml',
+        require => Yumrepo[openshift-origin-deps],
       }
     )
 
     ensure_resource('package', 'ruby193-rubygem-formtastic', {
         ensure   => 'latest',
-        alias    => 'rubygem-formtastic',
+        alias    => 'formtastic',
+        require => Yumrepo[openshift-origin-deps],
       }
     )
+
+    ensure_resource('package', 'ruby193-rubygem-minitest', {
+        ensure => 'latest',
+        alias  => 'minitest',
+        require => Yumrepo[openshift-origin-deps],
+      }
+    )
+
+    ensure_resource('package', 'ruby193-rubygem-webmock', {
+        ensure   => 'latest',
+        alias    => 'webmock',
+        require => Yumrepo[openshift-origin-deps],
+      }
+    )
+
+    ensure_resource('package', 'ruby193-rubygem-poltergeist', {
+        ensure   => 'latest',
+        alias    => 'poltergeist',
+        require => Yumrepo[openshift-origin-deps],
+      }
+    )
+
+    ensure_resource('package', 'ruby193-rubygem-capybara', {
+        ensure   => 'latest',
+        alias    => 'capybara',
+        require => Yumrepo[openshift-origin-deps],
+      }
+    )
+  }
+
+  # This File resource is to guarantee that the Gemfile.lock created
+  # by the following Exec has the appropriate permissions (otherwise
+  # it is created as owned by root:root)  
+  file { '/var/www/openshift/console/Gemfile.lock':
+    ensure    => 'present',
+    owner     => 'apache',
+    group     => 'apache',
+    mode      => '0644',
+    subscribe => Exec ['Console gem dependencies'],
+    require   => Exec ['Console gem dependencies'],
   }
 
   exec { 'Console gem dependencies':
@@ -215,16 +332,24 @@ class openshift_origin::console {
     subscribe   => [
       Package['openshift-origin-console'],
       Package['rubygem-openshift-origin-console'],
-      Package['rubygem-sass-rails'],
-      Package['rubygem-jquery-rails'],
-      Package['rubygem-uglifier'],
-      Package['rubygem-coffee-rails'],
-      Package['rubygem-compass-rails'],
-      Package['rubygem-therubyracer'],
-      Package['rubygem-rdiscount'],
-      Package['rubygem-net-http-persistent'],
-      Package['rubygem-haml'],
-      Package['rubygem-formtastic'],
+      Package['sass-rails'],
+      Package['sass-twitter-bootstrap'],
+      Package['jquery-rails'],
+      Package['uglifier'],
+      Package['coffee-rails'],
+      Package['compass-rails'],
+      Package['therubyracer'],
+      Package['rdiscount'],
+      Package['net-http-persistent'],
+      Package['haml'],
+      Package['formtastic'],
+      Package['ci_reporter'],
+      Package['minitest'],
+      Package['mocha'],
+      Package['simplecov'],
+      Package['webmock'],
+      Package['poltergeist'],
+      Package['capybara'],
       File['openshift console.conf'],
     ],
     refreshonly => true,

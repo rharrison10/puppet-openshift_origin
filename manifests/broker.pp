@@ -30,106 +30,102 @@
 # limitations under the License.
 #
 class openshift_origin::broker {
-  ensure_resource('package', 'mysql-devel', {
-      ensure => 'latest',
-    }
-  )
-
-  ensure_resource('package', 'mongodb-devel', {
-      ensure => 'latest',
-    }
-  )
-
   ensure_resource('package', 'openshift-origin-broker', {
-      ensure  => present,
+      ensure  => latest,
       require => Yumrepo[openshift-origin],
     }
   )
 
   ensure_resource('package', 'rubygem-openshift-origin-msg-broker-mcollective', {
-      ensure  => present,
+      ensure  => latest,
       require => Yumrepo[openshift-origin],
     }
   )
 
   ensure_resource('package', 'rubygem-openshift-origin-dns-nsupdate', {
-      ensure  => present,
+      ensure  => latest,
       require => Yumrepo[openshift-origin],
     }
   )
 
   if($::operatingsystem == 'Fedora') {
     ensure_resource('package', 'rubygem-openshift-origin-dns-avahi', {
-        ensure  => present,
+        ensure  => latest,
         require => Yumrepo[openshift-origin],
       }
     )
   }
 
   ensure_resource('package', 'rubygem-openshift-origin-dns-bind', {
-      ensure  => present,
+      ensure  => latest,
       require => Yumrepo[openshift-origin],
     }
   )
 
   ensure_resource('package', 'rubygem-openshift-origin-controller', {
-      ensure  => present,
+      ensure  => latest,
       require => Yumrepo[openshift-origin],
     }
   )
 
   ensure_resource('package', 'openshift-origin-broker-util', {
-      ensure  => present,
+      ensure  => latest,
       require => Yumrepo[openshift-origin],
     }
   )
 
   ensure_resource('package', 'rubygem-passenger', {
-      ensure  => present,
+      ensure  => latest,
       require => Yumrepo[openshift-origin-deps],
+      name => $::operatingsystem ? {
+        'Fedora' => 'rubygem-passenger',
+        'CentOS' => 'ruby193-rubygem-passenger',
+        default  => 'ruby193-rubygem-passenger', 
+      }
     }
   )
 
   ensure_resource('package', 'openssh', {
-      ensure => present,
+      ensure  => latest,
     }
   )
 
   ensure_resource('package', 'mod_passenger', {
-      ensure  => present,
+      ensure  => latest,
       require => Yumrepo[openshift-origin-deps],
     }
   )
 
   if $::operatingsystem == 'Fedora' {
-  
-    ensure_resource('package', 'mysql', {
-        provider => 'gem',
-        require  => [Package['ruby-devel'], Package['mysql-devel']]
+    ensure_resource('package', 'mariadb-devel', {
+        ensure => 'latest',
+        alias  => 'mariadb-devel',
       }
     )
     
-    ensure_resource('package', 'mongoid', {
-        ensure   => '3.0.21',
-        provider => 'gem',
+    ensure_resource('package', 'rubygem-mongoid', {
+        ensure  => 'latest',
+        require => Yumrepo[openshift-origin-deps],
+        alias   => 'mongoid'
       }
     )
 
-    ensure_resource('package', 'moped', {
-        ensure   => '1.3.2',
-        provider => 'gem',
+    ensure_resource('package', 'rubygem-moped', {
+        ensure  => 'latest',
+        require => Yumrepo[openshift-origin-deps],
+        alias   => 'moped'
       }
     )
     
-    ensure_resource('package', 'origin', {
-        ensure   => '1.0.11',
-        provider => 'gem',
+    ensure_resource('package', 'rubygem-origin', {
+        ensure   => 'latest',
+        require  => Yumrepo[openshift-origin-deps],
+        alias    => 'origin'
       }
     )
 
-    ensure_resource('package', 'minitest', {
-        ensure   => '3.2.0',
-        provider => 'gem',
+    ensure_resource('package', 'rubygem-minitest', {
+        ensure   => 'latest',
         alias    => 'minitest'
       }
     )
@@ -179,6 +175,11 @@ class openshift_origin::broker {
     ensure_resource('package', 'rubygem-bigdecimal', {
         ensure   => 'latest',
         alias    => 'bigdecimal'
+      }
+    )
+
+    ensure_resource('package', 'mongodb-devel', {
+        ensure  => latest,
       }
     )
 
@@ -282,10 +283,10 @@ class openshift_origin::broker {
       }
     )
 
-    ensure_resource('package', 'mocha', {
-        ensure   => '0.12.10',
-        provider => 'gem',
-        alias    => 'mocha'
+    ensure_resource('package', 'rubygem-mocha', {
+        ensure  => 'latest',
+        require => Yumrepo[openshift-origin-deps],
+        alias   => 'mocha'
       }
     )
 
@@ -477,51 +478,65 @@ class openshift_origin::broker {
   }
 
   if ($::operatingsystem == "RedHat" or $::operatingsystem == "CentOS") {
+    ensure_resource('package', 'mysql-devel', {
+        ensure => 'latest',
+        alias  => 'mariadb-devel',
+      }
+    )
+  
     ensure_resource('package', 'ruby193-rubygem-actionmailer', {
         ensure => 'latest',
         alias  => 'actionmailer',
+        require => Yumrepo[openshift-origin-deps],
       }
     )
 
     ensure_resource('package', 'ruby193-rubygem-actionpack', {
         ensure => 'latest',
         alias  => 'actionpack',
+        require => Yumrepo[openshift-origin-deps],
       }
     )
 
     ensure_resource('package', 'ruby193-rubygem-activemodel', {
         ensure => 'latest',
         alias  => 'activemodel',
+        require => Yumrepo[openshift-origin-deps],
       }
     )
 
     ensure_resource('package', 'ruby193-rubygem-activerecord', {
         ensure => 'latest',
         alias  => 'activerecord',
+        require => Yumrepo[openshift-origin-deps],
       }
     )
 
     ensure_resource('package', 'ruby193-rubygem-activeresource', {
         ensure => 'latest',
         alias  => 'activeresource',
+        require => Yumrepo[openshift-origin-deps],
       }
     )
 
     ensure_resource('package', 'ruby193-rubygem-activesupport', {
         ensure => 'latest',
         alias  => 'activesupport',
+        require => Yumrepo[openshift-origin-deps],
       }
     )
 
     ensure_resource('package', 'ruby193-rubygem-arel', {
         ensure => 'latest',
         alias  => 'arel',
+        require => Yumrepo[openshift-origin-deps],
       }
     )
 
     ensure_resource('package', 'ruby193-rubygem-bigdecimal', {
       ensure => 'latest',
       alias  => 'bigdecimal',
+      require => Yumrepo[openshift-origin-deps],
     }
     )
 
@@ -529,8 +544,7 @@ class openshift_origin::broker {
         ensure  => 'latest',
         alias   => 'bson',
         require => [
-          Package['ruby-devel'],
-          Package['mongodb-devel'],
+          Yumrepo[openshift-origin-deps],
         ],
       }
     )
@@ -539,8 +553,7 @@ class openshift_origin::broker {
         ensure  => 'latest',
         alias   => 'bson_ext',
         require => [
-          Package['ruby-devel'],
-          Package['mongodb-devel'],
+          Yumrepo[openshift-origin-deps],
         ],
       }
     )
@@ -548,277 +561,325 @@ class openshift_origin::broker {
     ensure_resource('package', 'ruby193-rubygem-builder', {
         ensure => 'latest',
         alias  => 'builder',
+        require => Yumrepo[openshift-origin-deps],
       }
     )
 
     ensure_resource('package', 'ruby193-rubygem-bundler', {
         ensure => 'latest',
         alias  => 'bundler',
+        require => Yumrepo[openshift-origin-deps],
       }
     )
 
     ensure_resource('package', 'ruby193-rubygem-cucumber', {
         ensure => 'latest',
         alias  => 'cucumber',
+        require => Yumrepo[openshift-origin-deps],
       }
     )
 
     ensure_resource('package', 'ruby193-rubygem-diff-lcs', {
         ensure => 'latest',
         alias  => 'diff-lcs',
+        require => Yumrepo[openshift-origin-deps],
       }
     )
 
     ensure_resource('package', 'ruby193-rubygem-dnsruby', {
         ensure => 'latest',
         alias  => 'dnsruby',
+        require => Yumrepo[openshift-origin-deps],
       }
     )
 
     ensure_resource('package', 'ruby193-rubygem-erubis', {
         ensure => 'latest',
         alias  => 'erubis',
+        require => Yumrepo[openshift-origin-deps],
       }
     )
 
     ensure_resource('package', 'ruby193-rubygem-gherkin', {
         ensure  => 'latest',
         alias   => 'gherkin',
-        require => Package['ruby-devel'],
+        require => [
+          Package['ruby-devel'],
+          Yumrepo[openshift-origin-deps],
+        ],
       }
     )
 
     ensure_resource('package', 'ruby193-rubygem-hike', {
         ensure => 'latest',
         alias  => 'hike',
+        require => Yumrepo[openshift-origin-deps],
       }
     )
 
     ensure_resource('package', 'ruby193-rubygem-i18n', {
         ensure => 'latest',
         alias  => 'i18n',
+        require => Yumrepo[openshift-origin-deps],
       }
     )
 
     ensure_resource('package', 'ruby193-rubygem-journey', {
         ensure => 'latest',
         alias  => 'journey',
+        require => Yumrepo[openshift-origin-deps],
       }
     )
 
     ensure_resource('package', 'ruby193-rubygem-json', {
         ensure => 'latest',
         alias  => 'json',
+        require => Yumrepo[openshift-origin-deps],
       }
     )
 
     ensure_resource('package', 'ruby193-rubygem-mail', {
         ensure => 'latest',
         alias  => 'mail',
+        require => Yumrepo[openshift-origin-deps],
       }
     )
 
     ensure_resource('package', 'ruby193-rubygem-metaclass', {
         ensure => 'latest',
         alias  => 'metaclass',
+        require => Yumrepo[openshift-origin-deps],
       }
     )
 
     ensure_resource('package', 'ruby193-rubygem-mime-types', {
         ensure => 'latest',
         alias  => 'mime-types',
+        require => Yumrepo[openshift-origin-deps],
       }
     )
 
     ensure_resource('package', 'ruby193-rubygem-minitest', {
         ensure => 'latest',
         alias  => 'minitest',
+        require => Yumrepo[openshift-origin-deps],
       }
     )
 
     ensure_resource('package', 'ruby193-rubygem-mocha', {
         ensure => 'latest',
         alias  => 'mocha',
+        require => Yumrepo[openshift-origin-deps],
       }
     )
 
     ensure_resource('package', 'ruby193-rubygem-mongo', {
         ensure => 'latest',
         alias  => 'mongo',
+        require => Yumrepo[openshift-origin-deps],
       }
     )
 
     ensure_resource('package', 'ruby193-rubygem-mongoid', {
         ensure => 'latest',
         alias  => 'mongoid',
+        require => Yumrepo[openshift-origin-deps],
       }
     )
 
     ensure_resource('package', 'ruby193-rubygem-moped', {
         ensure => 'latest',
         alias  => 'moped',
+        require => Yumrepo[openshift-origin-deps],
       }
     )
 
     ensure_resource('package', 'ruby193-rubygem-multi_json', {
         ensure => 'latest',
         alias  => 'multi_json',
+        require => Yumrepo[openshift-origin-deps],
       }
     )
 
     ensure_resource('package', 'ruby193-rubygem-open4', {
         ensure => 'latest',
         alias  => 'open4',
+        require => Yumrepo[openshift-origin-deps],
       }
     )
 
     ensure_resource('package', 'ruby193-rubygem-origin', {
         ensure => 'latest',
         alias  => 'origin',
+        require => Yumrepo[openshift-origin-deps],
       }
     )
 
     ensure_resource('package', 'ruby193-rubygem-parseconfig', {
         ensure => 'latest',
         alias  => 'parseconfig',
+        require => Yumrepo[openshift-origin-deps],
       }
     )
 
     ensure_resource('package', 'ruby193-rubygem-polyglot', {
         ensure => 'latest',
         alias  => 'polyglot',
+        require => Yumrepo[openshift-origin-deps],
       }
     )
 
     ensure_resource('package', 'ruby193-rubygem-rack', {
         ensure => 'latest',
         alias  => 'rack',
+        require => Yumrepo[openshift-origin-deps],
       }
     )
 
     ensure_resource('package', 'ruby193-rubygem-rack-cache', {
         ensure => 'latest',
         alias  => 'rack-cache',
+        require => Yumrepo[openshift-origin-deps],
       }
     )
 
     ensure_resource('package', 'ruby193-rubygem-rack-ssl', {
         ensure => 'latest',
         alias  => 'rack-ssl',
+        require => Yumrepo[openshift-origin-deps],
       }
     )
 
     ensure_resource('package', 'ruby193-rubygem-rack-test', {
         ensure => 'latest',
         alias  => 'rack-test',
+        require => Yumrepo[openshift-origin-deps],
       }
     )
 
     ensure_resource('package', 'ruby193-rubygem-rails', {
         ensure => 'latest',
         alias  => 'rails',
+        require => Yumrepo[openshift-origin-deps],
       }
     )
 
     ensure_resource('package', 'ruby193-rubygem-railties', {
         ensure => 'latest',
         alias  => 'railties',
+        require => Yumrepo[openshift-origin-deps],
       }
     )
 
     ensure_resource('package', 'ruby193-rubygem-rake', {
         ensure => 'latest',
         alias  => 'rake',
+        require => Yumrepo[openshift-origin-deps],
       }
     )
 
     ensure_resource('package', 'ruby193-rubygem-rdoc', {
         ensure => 'latest',
         alias  => 'rdoc',
+        require => Yumrepo[openshift-origin-deps],
       }
     )
 
     ensure_resource('package', 'ruby193-rubygem-regin', {
         ensure => 'latest',
         alias  => 'regin',
+        require => Yumrepo[openshift-origin-deps],
       }
     )
 
     ensure_resource('package', 'ruby193-rubygem-rest-client', {
         ensure => 'latest',
         alias  => 'rest-client',
+        require => Yumrepo[openshift-origin-deps],
       }
     )
 
     ensure_resource('package', 'ruby193-rubygem-simplecov', {
         ensure => 'latest',
         alias  => 'simplecov',
+        require => Yumrepo[openshift-origin-deps],
       }
     )
 
     ensure_resource('package', 'ruby193-rubygem-simplecov-html', {
         ensure => 'latest',
         alias  => 'simplecov-html',
+        require => Yumrepo[openshift-origin-deps],
       }
     )
 
     ensure_resource('package', 'ruby193-rubygem-sprockets', {
         ensure => 'latest',
         alias  => 'sprockets',
+        require => Yumrepo[openshift-origin-deps],
       }
     )
 
     ensure_resource('package', 'ruby193-rubygem-state_machine', {
         ensure => 'latest',
         alias  => 'state_machine',
+        require => Yumrepo[openshift-origin-deps],
       }
     )
 
     ensure_resource('package', 'ruby193-rubygem-stomp', {
         ensure => 'latest',
         alias  => 'stomp',
+        require => Yumrepo[openshift-origin-deps],
       }
     )
 
     ensure_resource('package', 'ruby193-rubygem-systemu', {
         ensure => 'latest',
         alias  => 'systemu',
+        require => Yumrepo[openshift-origin-deps],
       }
     )
 
     ensure_resource('package', 'ruby193-rubygem-term-ansicolor', {
         ensure => 'latest',
         alias  => 'term-ansicolor',
+        require => Yumrepo[openshift-origin-deps],
       }
     )
 
     ensure_resource('package', 'ruby193-rubygem-thor', {
         ensure => 'latest',
         alias  => 'thor',
+        require => Yumrepo[openshift-origin-deps],
       }
     )
 
     ensure_resource('package', 'ruby193-rubygem-tilt', {
         ensure => 'latest',
         alias  => 'tilt',
+        require => Yumrepo[openshift-origin-deps],
       }
     )
 
     ensure_resource('package', 'ruby193-rubygem-treetop', {
         ensure => 'latest',
         alias  => 'treetop',
+        require => Yumrepo[openshift-origin-deps],
       }
     )
 
     ensure_resource('package', 'ruby193-rubygem-tzinfo', {
         ensure => 'latest',
         alias  => 'tzinfo',
+        require => Yumrepo[openshift-origin-deps],
       }
     )
 
     ensure_resource('package', 'ruby193-rubygem-xml-simple', {
         ensure => 'latest',
         alias  => 'xml-simple',
+        require => Yumrepo[openshift-origin-deps],
       }
     )
   }
@@ -852,17 +913,45 @@ class openshift_origin::broker {
   }
 
   file { 'openshift production log':
-    path    => '/var/www/openshift/broker/log/production.log',
-    owner   => 'root',
-    group   => 'root',
-    mode    => '0666',
+    ensure  => 'present',
+    path    => '/var/log/openshift/broker/production.log',
+    owner   => 'apache',
+    group   => 'apache',
+    mode    => '0750',
     require => Package['openshift-origin-broker'],
+  }
+
+  file { 'openshift development log':
+    ensure  => 'present',
+    path    => '/var/log/openshift/broker/development.log',
+    owner   => 'apache',
+    group   => 'apache',
+    mode    => '0750',
+    require => Package['openshift-origin-broker'],
+  }
+
+  file { 'openshift usage log':
+    ensure  => 'present',
+    path    => '/var/log/openshift/broker/usage.log',
+    owner   => 'apache',
+    group   => 'apache',
+    mode    => '0750',
+    require => Package['openshift-origin-broker'],
+  }
+
+  exec { 'restorecon -vr /var/log/openshift':
+    provider  => 'shell',
+    subscribe => [
+      File['openshift production log'],
+      File['openshift development log'],
+      File['openshift usage log'],
+    ],
   }
 
   if !defined(File['mcollective client config']) {
     file { 'mcollective client config':
       ensure  => present,
-      path    => '/etc/mcollective/client.cfg',
+      path    => $::openshift_origin::mcollective_client_cfg,
       content => template('openshift_origin/mcollective-client.cfg.erb'),
       owner   => 'root',
       group   => 'root',
@@ -874,7 +963,7 @@ class openshift_origin::broker {
   if !defined(File['mcollective server config']) {
     file { 'mcollective server config':
       ensure  => present,
-      path    => '/etc/mcollective/server.cfg',
+      path    => $::openshift_origin::mcollective_server_cfg,
       content => template('openshift_origin/mcollective-server.cfg.erb'),
       owner   => 'root',
       group   => 'root',
@@ -892,7 +981,11 @@ class openshift_origin::broker {
         owner   => 'root',
         group   => 'root',
         mode    => '0644',
-        require => Package['mcollective'],
+        require => [
+          Package['mcollective'],
+          Package['ruby193-ruby'],
+          Yumrepo[openshift-origin-deps],
+        ],
       }
     }
   }
@@ -968,7 +1061,7 @@ class openshift_origin::broker {
   case $::openshift_origin::broker_auth_plugin {
     'mongo'      : {
       package { ['rubygem-openshift-origin-auth-mongo']:
-        ensure  => present,
+        ensure  => latest,
         require => Yumrepo[openshift-origin],
       }
 
@@ -984,7 +1077,7 @@ class openshift_origin::broker {
     }
     'basic-auth' : {
       package { ['rubygem-openshift-origin-auth-remote-user']:
-        ensure  => present,
+        ensure  => latest,
         require => Yumrepo[openshift-origin],
       }
 
@@ -1033,9 +1126,9 @@ class openshift_origin::broker {
         ensure => installed,
       }
       
-      file {'kerberos keytab':
+      file {'broker http keytab':
         ensure => present,
-        path => $::openshift_origin::kerberos_keytab,
+        path => $::openshift_origin::http_kerberos_keytab,
         owner => 'apache',
         group => 'apache',
         mode => '0644',
@@ -1052,7 +1145,7 @@ class openshift_origin::broker {
         require => [
           Package['rubygem-openshift-origin-auth-remote-user'],
           Package['mod_auth_kerb'],
-          File['kerberos keytab']
+          File['broker http keytab']
         ]
       }
 
@@ -1066,7 +1159,7 @@ class openshift_origin::broker {
         require => [
           Package['rubygem-openshift-origin-auth-remote-user'],
           Package['mod_auth_kerb'],
-          File['kerberos keytab']
+          File['broker http keytab']
         ]
       }
 
@@ -1086,19 +1179,45 @@ class openshift_origin::broker {
 
   case $::openshift_origin::broker_dns_plugin {  
     'nsupdate'   : {
-      if $openshift_origin::named_tsig_priv_key == '' {
+      if $openshift_origin::named_tsig_priv_key == '' and !$openshift_origin::broker_dns_gsstsig {
         warning "Generate the Key file with '/usr/sbin/dnssec-keygen -a HMAC-MD5 -b 512 -n USER -r /dev/urandom -K /var/named ${openshift_origin::cloud_domain}'"
         warning "Use the last field in the generated key file /var/named/K${openshift_origin::cloud_domain}*.key"
         fail 'named_tsig_priv_key is required.'
       }
-      
-      file { 'plugin openshift-origin-dns-nsupdate.conf':
-        path    => '/etc/openshift/plugins.d/openshift-origin-dns-nsupdate.conf',
-        content => template('openshift_origin/broker/plugins/dns/nsupdate/nsupdate.conf.erb'),
-        owner   => 'root',
-        group   => 'root',
-        mode    => '0644',
-        require => Package['rubygem-openshift-origin-dns-nsupdate'],
+      if $openshift_origin::broker_dns_gsstsig and $openshift_origin::dns_kerberos_keytab == '' {
+        warning "Kerberos keytab for the DNS service was not found. Please generate a keytab for DNS/${openshift_origin::node_fqdn}"
+        fail "broker_dns_keytab is required."
+      }
+
+      if $openshift_origin::broker_dns_gsstsig {
+        file { 'broker-dns-keytab':
+          ensure => present,
+          path => $openshift_origin::dns_kerberos_keytab,
+          owner => 'apache',
+          group => 'apache',
+          mode => '0664',
+          require => Package['rubygem-openshift-origin-dns-nsupdate'],
+        }
+        file { 'plugin openshift-origin-dns-nsupdate.conf':
+          path   => '/etc/openshift/plugins.d/openshift-origin-dns-nsupdate.conf',
+          content => template('openshift_origin/broker/plugins/dns/nsupdate/nsupdate-kerb.conf.erb'),
+          owner   => 'root',
+          group   => 'root',
+          mode    => '0644',
+          require => [
+            Package['rubygem-openshift-origin-dns-nsupdate'],
+            File['broker-dns-keytab'],
+            ]
+        }
+      } else {
+        file { 'plugin openshift-origin-dns-nsupdate.conf':
+          path    => '/etc/openshift/plugins.d/openshift-origin-dns-nsupdate.conf',
+          content => template('openshift_origin/broker/plugins/dns/nsupdate/nsupdate.conf.erb'),
+          owner   => 'root',
+          group   => 'root',
+          mode    => '0644',
+          require => Package['rubygem-openshift-origin-dns-nsupdate'],
+        }
       }
     }
     'avahi'      : {
@@ -1120,6 +1239,18 @@ class openshift_origin::broker {
     'Fedora' => '/usr/bin/bundle show',
     'CentOS' => '/usr/bin/scl enable ruby193 "bundle show"',
     default  => '/usr/bin/scl enable ruby193 "bundle show"',
+  }
+
+  # This File resource is to guarantee that the Gemfile.lock created
+  # by the following Exec has the appropriate permissions (otherwise
+  # it is created as owned by root:root)  
+  file { '/var/www/openshift/broker/Gemfile.lock':
+    ensure    => 'present',
+    owner     => 'apache',
+    group     => 'apache',
+    mode      => '0644',
+    subscribe => Exec ['Broker gem dependencies'],
+    require   => Exec ['Broker gem dependencies'],
   }
 
   exec { 'Broker gem dependencies':

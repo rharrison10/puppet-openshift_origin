@@ -32,12 +32,12 @@
 class openshift_origin::mongo {
   include openshift_origin::params
   ensure_resource('package', 'mongodb', {
-      ensure  => present,
+      ensure  => latest,
       require => Yumrepo['openshift-origin-deps'],
     }
   )
   ensure_resource('package', 'mongodb-server', {
-      ensure  => present,
+      ensure  => latest,
       require => Yumrepo['openshift-origin-deps'],
     }
   )
@@ -100,7 +100,13 @@ class openshift_origin::mongo {
       enable   => true,
     }
   } else {
+    $cmd = $::operatingsystem ? {
+      'Fedora' => '/usr/sbin/oo-mongo-setup',
+      default => '/usr/bin/scl enable ruby193 /usr/sbin/oo-mongo-setup',
+    }
+
     exec { '/usr/sbin/oo-mongo-setup':
+      command => $cmd,
       require => File['mongo setup script']
     }
   }

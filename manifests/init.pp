@@ -101,11 +101,15 @@
 # [*os_unmanaged_users*]
 #   List of users with UID which should not be managed by OpenShift. (By default OpenShift Origin PAM will reserve all
 #   UID's > 500 and prevent user logins)
+# [*user_supplementary_groups*]
+#   Comma separated list of supplementary groups that the user should be a member of when the new unix user is being created
 # [*update_network_dns_servers*]
 #   True if Bind DNS server specified in <code>named_ipaddress</code> should be added as first DNS server for application name.
 #   resolution. (This should be false if using Avahi for MDNS updates)
 # [*development_mode*]
 #   Set to true to enable development mode and detailed logging
+# [*min_gear_uid]
+#   Min gear uid/gid
 #
 # === Copyright
 #
@@ -144,7 +148,9 @@ class openshift_origin (
   $use_v2_carts               = false,
   $set_sebooleans             = true,
   $install_login_shell        = false,
+  $eth_device                 = 'eth0',
   $install_repo               = 'nightlies',
+  $dependencies_repo          = 'nightlies',
   $named_ipaddress            = $::ipaddress,
   $avahi_ipaddress            = $::ipaddress,
   $mongodb_fqdn               = 'localhost',
@@ -166,7 +172,9 @@ class openshift_origin (
   $broker_session_secret      = 'changeme',
   $broker_rsync_key           = '',
   $broker_dns_plugin          = 'nsupdate',
-  $kerberos_keytab            = '/var/www/openshift/broker/httpd/conf.d/http.keytab',
+  $broker_dns_gsstsig         = false,
+  $dns_kerberos_keytab        = '/etc/dns.keytab',
+  $http_kerberos_keytab       = '/etc/http.keytab',
   $kerberos_realm             = 'EXAMPLE.COM',
   $kerberos_service           = $::fqdn,
   $mq_provider                = 'activemq',
@@ -177,8 +185,12 @@ class openshift_origin (
   $mongo_auth_password        = 'mooo',
   $named_tsig_priv_key        = '',
   $os_unmanaged_users         = [],
+  $user_supplementary_groups  = '',
   $update_network_dns_servers = true,
-  $development_mode           = false
+  $development_mode           = false,
+  $eth_device                 = 'eth0',
+  $min_gear_uid               = 500,
+  $node_container             = 'selinux'
 ) {
   include openshift_origin::params
 
@@ -264,6 +276,21 @@ class openshift_origin (
     'Fedora' => '/usr/bin/echo',
     default  => '/bin/echo',
   }
+  
+  $mcollective_client_cfg = $::operatingsystem ? {
+    'Fedora' => '/etc/mcollective/client.cfg',
+    default  => '/opt/rh/ruby193/root/etc/mcollective/client.cfg',
+  }
+  
+  $mcollective_server_cfg = $::operatingsystem ? {
+    'Fedora' => '/etc/mcollective/server.cfg',
+    default  => '/opt/rh/ruby193/root/etc/mcollective/server.cfg',
+  }
+
+  $mcollective_facts_yaml = $::operatingsystem ? {
+    'Fedora' => '/etc/mcollective/facts.yaml',
+    default  => '/opt/rh/ruby193/root/etc/mcollective/facts.yaml',
+  }
 
   if $configure_ntp == true {
     include openshift_origin::ntpd
@@ -294,10 +321,30 @@ class openshift_origin (
   }
 
   if $create_origin_yum_repos == true {
-    $mirror_base_url = $::operatingsystem ? {
-      'Fedora' => "https://mirror.openshift.com/pub/openshift-origin/fedora-${::operatingsystemrelease}/${::architecture}/",
-      'Centos' => "https://mirror.openshift.com/pub/openshift-origin/rhel-6/${::architecture}/",
-      default  => "https://mirror.openshift.com/pub/openshift-origin/rhel-6/${::architecture}/",
+    case $dependencies_repo {
+      'nightlies' : {
+        case $::operatingsystem {
+          'Fedora' : {
+            $mirror_base_url = "https://mirror.openshift.com/pub/origin-server/nightly/fedora-19/dependencies/x86_64/"
+          }
+          default  : {
+            $mirror_base_url = "https://mirror.openshift.com/pub/origin-server/nightly/rhel-6/dependencies/x86_64/"
+          }
+        }
+      }
+      'release' : {
+        case $::operatingsystem {
+          'Fedora' : {
+            $mirror_base_url = "https://mirror.openshift.com/pub/origin-server/release/2/fedora-19/dependencies/x86_64/"
+          }
+          default  : {
+            $mirror_base_url = "https://mirror.openshift.com/pub/origin-server/release/2/rhel-6/dependencies/x86_64/"
+          }
+        }
+      }
+      default     : {
+        $mirror_base_url = $dependencies_repo
+      }
     }
 
     yumrepo { 'openshift-origin-deps':
@@ -311,10 +358,20 @@ class openshift_origin (
       'nightlies' : {
         case $::operatingsystem {
           'Fedora' : {
-            $install_repo_path = "https://mirror.openshift.com/pub/openshift-origin/nightly/fedora-${::operatingsystemrelease}/latest/${::architecture}/"
+            $install_repo_path = "https://mirror.openshift.com/pub/origin-server/nightly/fedora-19/latest/x86_64/"
           }
           default  : {
-            $install_repo_path = "https://mirror.openshift.com/pub/openshift-origin/nightly/rhel-6/latest/${::architecture}/"
+            $install_repo_path = "https://mirror.openshift.com/pub/origin-server/nightly/rhel-6/latest/x86_64/"
+          }
+        }
+      }
+      'release' : {
+        case $::operatingsystem {
+          'Fedora' : {
+            $install_repo_path = "https://mirror.openshift.com/pub/origin-server/release/2/fedora-19/packages/x86_64/"
+          }
+          default  : {
+            $install_repo_path = "https://mirror.openshift.com/pub/origin-server/release/2/rhel-6/packages/x86_64/"
           }
         }
       }
@@ -331,25 +388,71 @@ class openshift_origin (
     }
   }
 
+  if $::operatingsystem != 'Fedora' {
+    ensure_resource('package', 'ruby193-ruby', {
+        ensure => present,
+        require => Yumrepo['openshift-origin-deps'],
+      }
+    )
+  }
+
   ensure_resource('package', 'policycoreutils', {
-  }
+    }
   )
-  ensure_resource('package', 'mcollective', {
-    require => Yumrepo['openshift-origin-deps'],
-  }
-  )
+  
   ensure_resource('package', 'httpd', {
-  }
+    }
   )
   ensure_resource('package', 'openssh-server', {
-  }
-  )
-
-  ensure_resource('package', 'ruby-devel', {
-      ensure  => present,
     }
   )
 
+  ensure_resource('package', 'facter', {
+    }
+  )
+
+  if $::operatingsystem == "Fedora" {
+    ensure_resource('package', 'mcollective', {
+        require => Yumrepo['openshift-origin-deps'],
+      }
+    )
+    
+    ensure_resource('package', 'ruby-devel', {
+        ensure  => present,
+      }
+    )
+
+    ensure_resource('package', 'openshift-origin-util', {
+        ensure  => present,
+        require => Yumrepo[openshift-origin],
+      }
+    )
+  } else {
+    ensure_resource('package', 'ruby193-mcollective', {
+        require => Yumrepo['openshift-origin-deps'],
+        alias   => 'mcollective'
+      }
+    )
+    
+    ensure_resource('package', 'ruby193-ruby-devel', {
+        ensure => present,
+        alias => 'ruby-devel',
+        require => Yumrepo[openshift-origin-deps],
+      }
+    )
+    ensure_resource('package', 'ruby193-rubygems', {
+        ensure => present,
+        alias => 'rubygems',
+        require => Yumrepo[openshift-origin-deps],
+      }
+    )
+
+    ensure_resource('package', 'openshift-origin-util-scl', {
+        ensure  => present,
+        require => Yumrepo[openshift-origin],
+      }
+    )
+  }
 
   if $enable_network_services == true {
     service { [httpd, network, sshd]:
@@ -415,6 +518,22 @@ class openshift_origin (
     include openshift_origin::selinux
   }
 
+  if ($set_sebooleans == true) {
+    file { '/etc/openshift':
+      ensure  => "directory",
+      owner   => 'root',
+      group   => 'root',
+    }
+
+    file { '/etc/openshift/.selinux-setup-complete':
+      content => '',
+      owner   => 'root',
+      group   => 'root',
+      mode    => '0644',
+      require => File['/etc/openshift'],
+    }
+  }
+
   if ($install_login_shell == true) {
     include openshift_origin::custom_shell
   }
@@ -422,9 +541,9 @@ class openshift_origin (
   if $install_client_tools == true {
     # Install rhc tools. On RHEL/CentOS, this will install under ruby 1.8 environment
     ensure_resource('package', 'rhc', {
-      ensure  => present,
-      require => Yumrepo[openshift-origin],
-    }
+        ensure  => present,
+        require => Yumrepo[openshift-origin],
+      }
     )
 
     file { '/etc/openshift/express.conf':
@@ -438,16 +557,19 @@ class openshift_origin (
     if $::operatingsystem == 'Redhat' {
       # Support gems and packages to allow rhc tools to run within SCL environment
       ensure_resource('package', 'ruby193-rubygem-net-ssh', {
-        ensure => present,
-      }
+          ensure => present,
+          require => Yumrepo[openshift-origin-deps],
+        }
       )
       ensure_resource('package', 'ruby193-rubygem-archive-tar-minitar', {
-        ensure => present,
-      }
+          ensure => present,
+          require => Yumrepo[openshift-origin-deps],
+        }
       )
       ensure_resource('package', 'ruby193-rubygem-commander', {
-        ensure => present,
-      }
+          ensure => present,
+          require => Yumrepo[openshift-origin-deps],
+        }
       )
 
       exec { 'gems to enable rhc in scl-193':
@@ -482,9 +604,37 @@ class openshift_origin (
   }
 
   if $update_network_dns_servers == true {
+    $mac_template = "<%= scope.lookupvar('::macaddress_${::openshift_origin::eth_device}') %>"
+    $mac_address  = inline_template( $mac_template )
+
+    #update for network and NetworkManager
     augeas { 'network setup':
-      context => '/files/etc/sysconfig/network-scripts/ifcfg-eth0',
-      changes => ["set DNS1 ${named_ipaddress}", "set HWADDR ${::macaddress_eth0}"],
+      context => "/files/etc/sysconfig/network-scripts/ifcfg-${::openshift_origin::eth_device}",
+      changes => [
+        "set DNS1 ${named_ipaddress}", 
+        "set PEERDNS no",
+        "set IPV6INIT no",
+      ],
+    }
+
+    #dhclient understands PEERDNS=no but not DNS1. Need to cerate resolv.conf manually
+    file { '/etc/resolv.conf':
+      content => "nameserver ${named_ipaddress}",
+    }
+
+    if ($configure_named ==  true and $configure_broker ==  true) {
+      $broker_hostname_arr = split($broker_fqdn, '[.]')
+      $broker_hostname = $broker_hostname_arr[0]
+      exec{ "Register host ${broker_hostname} with IP ${::ipaddress} with named":
+        command => "/usr/sbin/oo-register-dns -h ${broker_hostname} -n ${::ipaddress} -d ${cloud_domain}",
+        require => [
+          Package['facter'],
+          Package['openshift-origin-broker-util'],
+          Service['named']
+        ]
+      }
+    } else {
+      warning 'Please make sure that $::hostname is resolvable via DNS.'
     }
   }
 
@@ -497,6 +647,7 @@ class openshift_origin (
         owner   => 'root',
         group   => 'root',
         mode    => '0644',
+        require => Yumrepo[openshift-origin-deps],
       }
     }
   }
