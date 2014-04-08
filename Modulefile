@@ -1,5 +1,5 @@
 name 'openshift-openshift_origin'
-version '0.1.15'
+version '3.0.1'
 
 author 'Mojo Lingo, Red Hat'
 license 'ASL'

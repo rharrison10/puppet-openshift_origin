@@ -6,8 +6,15 @@
 #
 # Required
 #
-BROKER_URL=https://<%= scope.lookupvar('::openshift_origin::broker_fqdn') %>/broker/rest
-DOMAIN_SUFFIX="<%= scope.lookupvar('::openshift_origin::cloud_domain') %>"
+BROKER_URL=https://<%= scope.lookupvar('::openshift_origin::broker_hostname') %>/broker/rest
+DOMAIN_SUFFIX="<%= scope.lookupvar('::openshift_origin::domain') %>"
+
+#
+# A URL used when creating links to the OpenShift community sites
+#
+# Optional
+#
+COMMUNITY_URL=https://www.openshift.com/
 
 #
 # A proxy URL to use when connecting with the broker.
@@ -53,7 +60,7 @@ BROKER_API_SSL_OPTIONS={:verify_mode => OpenSSL::SSL::VERIFY_NONE}
 #   during startup of the console and any errors will prevent
 #   load.
 #
-CONSOLE_SECURITY=basic
+CONSOLE_SECURITY=<%= scope.lookupvar('::openshift_origin::broker_auth_plugin') == 'mongo' ? 'basic' : 'remote_user' %>
 
 #
 # The name of the request env variable or header that indicates a 
@@ -98,4 +105,4 @@ REMOTE_USER_HEADER=REMOTE_USER
 #
 REMOTE_USER_COPY_HEADERS=X-Remote-User
 
-SESSION_SECRET="<%= scope.lookupvar('::openshift_origin::console_session_secret') %>"
+SESSION_SECRET="<%= scope.lookupvar('::openshift_origin::conf_console_session_secret') %>"
