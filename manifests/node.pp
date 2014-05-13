@@ -155,7 +155,10 @@ class openshift_origin::node {
     }
   }
 
-  service { ['openshift-gears']:
+  service { [
+      'openshift-gears',
+      'openshift-watchman',
+    ]:
     enable   => true,
     require  => [
       Package['rubygem-openshift-origin-node'],
