@@ -18,4 +18,25 @@ class openshift_origin::firewall::node {
     table  => 'filter',
     source => 'puppet:///modules/openshift_origin/firewall/node_iptables.txt',
   }
+  lokkit::custom { 'system-config-firewall-compat':
+    ensure  => present,
+    type    => 'ipv4',
+    table   => 'filter',
+    source  => '/etc/openshift/system-config-firewall-compat',
+    require => Package['rubygem-openshift-origin-node'],
+  }
+  lokkit::custom { 'iptables.filter.rules':
+    ensure  => present,
+    type    => 'ipv4',
+    table   => 'filter',
+    source  => '/etc/openshift/iptables.filter.rules',
+    require => Package['rubygem-openshift-origin-node'],
+  }
+  lokkit::custom { 'iptables.nat.rules':
+    ensure  => present,
+    type    => 'ipv4',
+    table   => 'nat',
+    source  => '/etc/openshift/iptables.nat.rules',
+    require => Package['rubygem-openshift-origin-node'],
+  }
 }
