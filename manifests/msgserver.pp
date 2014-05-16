@@ -1,12 +1,12 @@
 # Copyright 2013 Mojo Lingo LLC.
 # Modifications by Red Hat, Inc.
-# 
+#
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
 #  You may obtain a copy of the License at
-# 
+#
 #      http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 #  Unless required by applicable law or agreed to in writing, software
 #  distributed under the License is distributed on an "AS IS" BASIS,
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -20,6 +20,9 @@ class openshift_origin::msgserver (
   if $::openshift_origin::manage_firewall {
     include openshift_origin::firewall::activemq
   }
+
+  $cluster_members        = $::openshift_origin::msgserver_cluster_members
+  $cluster_remote_members = delete($cluster_members, $::openshift_origin::msgserver_hostname)
 
   package { ['activemq','activemq-client']:
       ensure  => present,
@@ -50,9 +53,15 @@ class openshift_origin::msgserver (
     require => Package['activemq'],
   }
 
+  if $::openshift_origin::msgserver_cluster {
+    $activemq_config_template_real = 'openshift_origin/activemq/activemq-network.xml.erb'
+  } else {
+    $activemq_config_template_real = 'openshift_origin/activemq/activemq.xml.erb'
+  }
+
   file { 'activemq.xml config':
     path    => '/etc/activemq/activemq.xml',
-    content => template('openshift_origin/activemq/activemq.xml.erb'),
+    content => template($activemq_config_template_real),
     owner   => 'root',
     group   => 'root',
     mode    => '0444',

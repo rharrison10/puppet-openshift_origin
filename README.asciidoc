@@ -12,21 +12,22 @@ services, and ntp.
 * Ben Klang
 * Ben Langfeld
 * Krishna Raman
+* N. Harrison Ripps
 
 == Requirements
 
 * Puppet >= 3
 * Facter >= 1.6.17
-* Puppetlabs/stdlib module.  Can be obtained
-  http://forge.puppetlabs.com/puppetlabs/stdlib[here] or with the command
-  `puppet module install puppetlabs/stdlib`
-* Puppetlabs/ntp module.  Can be obtained
-  http://forge.puppetlabs.com/puppetlabs/ntp[here] or with the command
-  `puppet module install puppetlabs/ntp`
 
 == Installation
 
-The module can be obtained from the
+The module can be installed directly via the `puppet` utility from PuppetForge:
+
+----
+puppet module install openshift/openshift_origin
+----
+
+Additionally, the module can be obtained from the
 https://github.com/openshift/puppet-openshift_origin[github repository].
 
 1. Download the https://github.com/openshift/puppet-openshift_origin/archive/master.zip[Zip file from github]
@@ -107,11 +108,12 @@ $ d.register_application "appname", "namespace", "node_fqdn"
 
 Choose from the following roles to be configured on this node.
 
-* broker     - Installs the broker and console.
-* node       - Installs the node and cartridges.
-* msgserver  - Installs ActiveMQ message broker.
-* datastore  - Installs MongoDB (not sharded/replicated)
-* nameserver - Installs a BIND dns server configured with a TSIG key for updates.
+* broker        - Installs the broker and console.
+* node          - Installs the node and cartridges.
+* msgserver     - Installs ActiveMQ message broker.
+* datastore     - Installs MongoDB (not sharded/replicated)
+* nameserver    - Installs a BIND dns server configured with a TSIG key for updates.
+* load_balancer - Installs HAProxy and Keepalived for Broker API high-availability.
 
 Default: ['broker','node','msgserver','datastore','nameserver']
 
@@ -145,35 +147,33 @@ Default: Fedora-19 Nightlies
 CPU Architecture to use for the definition OpenShift Origin yum repositories
 Defaults: $::architecture (from facter)
 
-*Fedora:
-**x86_64
-**armv7hl
-*RHEL:
-**x86_64
-
+* RHEL:
+** x86_64
+* CentOS:
+** x86_64
 
 ==== override_install_repo
 Repository path override. Uses dependencies from repos_base but uses 
 override_install_repo path for OpenShift RPMs. Used when doing local builds.
 
 Default: none
-  
+
 ==== os_repo
 The URL for a Fedora 19/RHEL 6 yum repository used with the "yum" install method.
 Should end in x86_64/os/.
 
 Default: no change
-  
+
 ==== os_updates
 The URL for a Fedora 19/RHEL 6 yum updates repository used with the "yum" install method.
 Should end in x86_64/.
 
 Default: no change
-  
+
 ==== jboss_repo_base
 The URL for a JBoss repositories used with the "yum" install method.
 Does not install repository if not specified.
-  
+
 ==== jenkins_repo_base
 The URL for a Jenkins repositories used with the "yum" install method.
 Does not install repository if not specified.
@@ -203,6 +203,12 @@ NOTE: if installing a nameserver, the script will create
 DNS entries for the hostnames of the other components being 
 installed on this host as well. If you are using a nameserver set
 up separately, you are responsible for all necessary DNS entries.
+
+==== datastore1_ip_addr|datastore2_ip_addr|datastore3_ip_addr
+Default: undef
+
+IP addresses of the first 3 MongoDB servers in a replica set.
+Add datastoreX_ip_addr parameters for larger clusters.
 
 ==== nameserver_ip_addr
 Default: IP of a name server instance or current IP if installing on this 
@@ -234,6 +240,40 @@ for the nameserver IP if none is given.
 
 Default: the current IP (at install)
 
+==== broker_cluster_members
+An array of broker hostnames that will be load-balanced for high-availability.
+
+Default: undef
+
+==== broker_cluster_ip_addresses
+An array of Broker IP addresses within the load-balanced cluster.
+
+Default: undef
+
+==== broker_virtual_ip_address
+The virtual IP address that will front-end the Broker cluster.
+
+Default: undef
+
+==== broker_virtual_hostname
+The hostame that represents the Broker API cluster.  This name is associated
+to broker_virtual_ip_address and added to Named for DNS resolution.
+
+Default: "broker.${domain}"
+
+==== load_balancer_master
+Sets the state of the load-balancer.  Valid options are true or false.
+true sets the load-balancer as the active listener for the Broker cluster
+Virtual IP address. Only 1 load_balancer_master is allowed within a Broker cluster.
+
+Default: false
+
+==== load_balancer_auth_password
+The password used to secure communication between the load-balancers
+within a Broker cluster.
+
+Default: 'changeme'
+
 ==== node_ip_addr
 This is used for the node to give a public IP, if different from the
 one on its NIC.
@@ -262,6 +302,31 @@ Default: ['time.apple.com iburst', 'pool.ntp.org iburst', 'clock.redhat.com ibur
 
 NOTE: Use iburst after every ntp server definition to speed up the
 initial synchronization.
+
+==== msgserver_cluster
+Default: false
+
+Set to true to cluster ActiveMQ for high-availability and scalability
+of OpenShift message queues.
+
+==== msgserver_cluster_members
+Default: undef
+
+An array of ActiveMQ server hostnames to be included in the ActiveMQ
+cluster. Required when parameter msgserver_cluster is set to true.
+
+==== mcollective_cluster_members
+Default: $msgserver_cluster_members
+
+An array of ActiveMQ server hostnames to be included in the ActiveMQ
+cluster. Required when parameter msgserver_cluster is set to true.
+
+==== msgserver_password
+Default 'changeme'
+
+Password used by ActiveMQ's amquser.  The amquser is used to authenticate
+ActiveMQ inter-cluster communication.  Only used when msgserver_cluster
+is true.
 
 ==== msgserver_admin_password
 This is the admin password for the ActiveMQ admin console, which is
@@ -302,6 +367,49 @@ This is the name of the database in MongoDB in which the broker will
 store data.
 
 Default: openshift_broker
+
+==== mongodb_port
+Default: '27017'
+
+The TCP port used for MongoDB to listen on.
+
+==== mongodb_replicasets
+Default: false
+
+Enable/disable MongoDB replica sets for database high-availability.
+
+==== mongodb_replica_name
+Default: 'openshift'
+
+The MongoDB replica set name when $mongodb_replicasets is true.
+
+==== mongodb_replica_primary
+Default: undef
+
+Set the host as the primary with true or secondary with false.
+
+==== mongodb_replica_primary_ip_addr
+Default: undef
+
+The IP address of the Primary host within the MongoDB replica set.
+
+==== mongodb_replicasets_members
+Default: undef
+
+An array of [host:port] of replica set hosts.
+Example: ['10.10.10.10:27017', '10.10.10.11:27017', '10.10.10.12:27017']
+
+==== mongodb_keyfile
+Default: '/etc/mongodb.keyfile'
+
+The file containing the $mongodb_key used to authenticate MongoDB
+replica set members.
+
+==== mongodb_key
+Default: 'changeme'
+
+The key used by members of a MongoDB replica set to authenticate
+one another.
 
 ==== openshift_user1
 ==== openshift_password1

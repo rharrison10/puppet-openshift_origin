@@ -1,8 +1,21 @@
+# Copyright 2014 Red Hat, Inc., All rights reserved.
+#
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
+#
 class openshift_origin::firewall::mdns {
-  lokkit::custom { 'Multicast DNS':
-    type    => 'ipv4',
-    table   => 'filter'
-    content => "-A INPUT -d 224.0.0.251/32 -p udp -m udp --dport 5353 -j ACCEPT 
--A OUTPUT -d 224.0.0.251/32 -p udp -m udp --dport 5353 -j ACCEPT ",
+  lokkit::custom { 'openshift_mdns_rules':
+    type   => 'ipv4',
+    table  => 'filter',
+    source => 'puppet:///modules/openshift_origin/firewall/mdns_iptables.txt',
   }
 }

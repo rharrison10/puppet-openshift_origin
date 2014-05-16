@@ -45,7 +45,10 @@ class openshift_origin::broker {
       'rubygem-openshift-origin-admin-console',
     ]:
     ensure  => present,
-    require => Class['openshift_origin::install_method'],
+    require => [
+      Class['openshift_origin::install_method'],
+      Package['httpd'],
+    ]
   }
 
   # declare all resources with the common set of parameters
@@ -80,6 +83,7 @@ class openshift_origin::broker {
   File['/var/www/openshift/broker/httpd/run'] {
       seltype => 'httpd_var_run_t',
       require => [
+        Package['httpd'],
         Class['openshift_origin::broker_console_dirs'],
         Selinux_fcontext['/var/www/openshift/broker/httpd/run(/.*)?'],
       ]
@@ -90,6 +94,7 @@ class openshift_origin::broker {
     recurse => true,
     seltype => 'httpd_tmp_t',
     require => [
+      Package['httpd'],
       Class['openshift_origin::broker_console_dirs'],
       Selinux_fcontext['/var/www/openshift/broker/tmp(/.*)?'],
       Exec['Broker gem dependencies'],
@@ -116,7 +121,7 @@ class openshift_origin::broker {
     file { 'broker auth public key':
       ensure  => present,
       path    => '/etc/openshift/server_pub.pem',
-      content => source($::openshift_origin::conf_broker_auth_public_key),
+      content => $::openshift_origin::conf_broker_auth_public_key,
       owner   => 'root',
       group   => 'root',
       mode    => '0644',
@@ -126,7 +131,7 @@ class openshift_origin::broker {
     file { 'broker auth private key':
       ensure  => present,
       path    => '/etc/openshift/server_priv.pem',
-      content => source($::openshift_origin::conf_broker_auth_private_key),
+      content => $::openshift_origin::conf_broker_auth_private_key,
       owner   => 'root',
       group   => 'root',
       mode    => '0644',
@@ -207,7 +212,20 @@ class openshift_origin::broker {
     owner     => 'apache',
     group     => 'apache',
     mode      => '0644',
+    require   => Package['openshift-origin-broker'],
     subscribe => Exec['Broker gem dependencies'],
+  }
+
+  exec { 'restorecon broker dir':
+    command  => 'restorecon -R /var/www/openshift/broker',
+    provider => 'shell',
+    require  => [
+      Package['openshift-origin-broker'],
+      Package['openshift-origin-broker-util'],
+      Package['rubygem-openshift-origin-msg-broker-mcollective'],
+      Package['rubygem-openshift-origin-admin-console'],
+    ],
+    notify   => Service['openshift-broker'],
   }
 
   service { 'openshift-broker':
