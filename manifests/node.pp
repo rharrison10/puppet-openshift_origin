@@ -134,6 +134,10 @@ class openshift_origin::node {
     ],
   }
 
+  Service['openshift-iptables-port-proxy'] {
+    subscribe => Exec['lokkit_update']
+  }
+
   # Fedora already has cgroups as systemd uses  them.
   if $::operatingsystem != 'Fedora' {
     file { '/etc/cgconfig.conf':
