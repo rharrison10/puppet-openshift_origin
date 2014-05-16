@@ -124,6 +124,7 @@ class openshift_origin::node {
       'oddjobd',
       'messagebus',
     ]:
+    ensure  => running,
     enable  => true,
     require => [
       Package['rubygem-openshift-origin-node'],
@@ -132,10 +133,6 @@ class openshift_origin::node {
       Package['oddjob'],
       Package['dbus'],
     ],
-  }
-
-  Service['openshift-iptables-port-proxy'] {
-    subscribe => Exec['lokkit_update']
   }
 
   # Fedora already has cgroups as systemd uses  them.

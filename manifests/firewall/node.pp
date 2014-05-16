@@ -36,4 +36,9 @@ class openshift_origin::firewall::node {
     source  => '/etc/openshift/iptables.nat.rules',
     require => Package['rubygem-openshift-origin-node'],
   }
+
+  # Make sure the <code>openshift-iptables-port-proxy</code> is restarted any time that <code>lokkit</code> restarts
+  # the firewall when it updates.
+  Exec['lokkit_update'] ~> Service['openshift-iptables-port-proxy']
+
 }
